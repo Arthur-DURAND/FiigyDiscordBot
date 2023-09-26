@@ -86,25 +86,27 @@ module.exports = {
             if(registration_not_finished){
                 interaction.user.send({content: "Status de l'inscription pour "+process.env.TOURNAMENT_NAME, components: [row]})
             } else {
-                team_members = await interaction.client.sequelize.models.team_member.findAll({ where: {team_id: team.id}})
-                let log_team = "**" + team.name + "**"
-                let contender_role = await guild.roles.fetch(process.env.CONTENDER_ROLE_ID)
-                
-                for(team_member of team_members){
-                    log_team += "\n• <@" + team_member.discord_id + "> ; " + team_member.discord_id + " ; " + team_member.ig_name 
-                    let member = await guild.members.fetch(team_member.discord_id)
-                    if(member && member.user){
-                        await RoleUtil.giveRoleKnowingRole(guild,member,contender_role)
-                        member.user.send("Inscription pour le tournois "+process.env.TOURNAMENT_NAME+" réussie !")
-                        // TODO Tes teammates sont :
+                if(guild){                
+                    team_members = await interaction.client.sequelize.models.team_member.findAll({ where: {team_id: team.id}})
+                    let log_team = "**" + team.name + "**"
+                    let contender_role = await guild.roles.fetch(process.env.CONTENDER_ROLE_ID)
+                    
+                    for(team_member of team_members){
+                        log_team += "\n• <@" + team_member.discord_id + "> ; " + team_member.discord_id + " ; " + team_member.ig_name 
+                        let member = await guild.members.fetch(team_member.discord_id)
+                        if(member && member.user){
+                            await RoleUtil.giveRoleKnowingRole(guild,member,contender_role)
+                            member.user.send("Inscription pour le tournois "+process.env.TOURNAMENT_NAME+" réussie !")
+                            // TODO Tes teammates sont :
+                        }
                     }
+                    let logChannel = await interaction.client.channels.cache.get(process.env.TOURNAMENT_LOG_CHANNEL_ID);
+                    if(!logChannel){
+                        logs.error(guild, interaction.user, "inscription_confirm", "Cannot get logChannel! : "+log_team)
+                        return
+                    }
+                    logChannel.send(log_team)
                 }
-                let logChannel = await interaction.client.channels.cache.get(process.env.TOURNAMENT_LOG_CHANNEL_ID);
-                if(!logChannel){
-                    logs.error(guild, interaction.user, "inscription_confirm", "Cannot get logChannel! : "+log_team)
-                    return
-                }
-                logChannel.send(log_team)
             }            
         } catch (error) {
 			if(interaction)

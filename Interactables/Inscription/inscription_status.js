@@ -21,21 +21,41 @@ module.exports = {
                 }
             }
 
-            user_registered = ""
-            user_not_registered = ""
+            
 
-            let team = teams[team_name]
+            // Get team id from team name
+            const team = await interaction.client.sequelize.models.team.findOne({ where: { name: team_name}})
             if(!team){
-                interaction.reply({content: "Cette team n'est plus dans le cache du bot ! Elle est sûrement déjà inscrite, ou le bot a redémarré.", ephemeral: true})
+                interaction.reply({content: "Cette équipe n'existe plus !", ephemeral: true})
                 return
             }
 
-            console.log(teams)
-            for(const [user_id, player] of Object.entries(team)){
-                if(!player["id"]){
-                    user_not_registered = user_not_registered + player["username"] + " ; "
-                } else {
-                    user_registered = user_registered + player["username"] + " ; "
+            // Get all ids
+            const team_members = await interaction.client.sequelize.models.team_member.findAll({ where: {team_id: team.id}})
+            if(!team_members){
+                interaction.reply({content: "Il n'y a personne dans cette équipe ! Etrange...", ephemeral: true})
+                return
+            }
+
+            user_registered = ""
+            user_not_registered = ""
+            const guild = interaction.client.guilds.cache.get(process.env.TOURNAMENT_GUILD_ID)
+            if(guild){
+                for(let team_member of team_members){
+                    let member = await guild.members.fetch(team_member.discord_id)
+                    if(team_member.ready){
+                        user_registered += member.displayName + " ; "
+                    } else {
+                        user_not_registered += member.displayName + " ; "
+                    }
+                }
+            } else {
+                for(let team_member of team_members){
+                    if(team_member.ready){
+                        user_registered += "<@"+team_member.discord_id + "> ; "
+                    } else {
+                        user_not_registered += "<@"+team_member.discord_id + "> ; "
+                    }
                 }
             }
             

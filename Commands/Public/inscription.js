@@ -29,12 +29,6 @@ module.exports = {
                     return
                 }
 
-                // Peu importe ?
-                // if(interaction.guild.id !== process.env.TOURNAMENT_GUILD_ID){
-                //     interaction.reply({content: "La commande a été executée sur le mauvais serveur.", ephemeral: true})
-                //     return
-                // }
-
                 logs.debug(interaction.guild,interaction.user,"inscription",null)
 
                 const team_name = interaction.options.getString('team_name');
@@ -47,7 +41,7 @@ module.exports = {
                 }
 
                 // Get role contender
-                const role = await interaction.guild.roles.cache.find(role => role.name === process.env.CONTENDER_ROLE)
+                const role = interaction.guild.roles.cache.find(role => role.name === process.env.CONTENDER_ROLE)
                 if (!role) {
                     logs.error(interaction.guild,interaction.user,"inscription","Role not found: " + process.env.CONTENDER_ROLE)
                     interaction.reply({content: "Une erreur s'est produite. Réessaye !", ephemeral: true})
@@ -129,17 +123,17 @@ module.exports = {
                             .setLabel("J'accepte !")
                             .setStyle(ButtonStyle.Primary),
                         new ButtonBuilder()
-                            .setCustomId('inscription_decline_modal?'+ team_name)
+                            .setCustomId('inscription_decline?'+ team_name)
                             .setLabel("Refuser")
                             .setStyle(ButtonStyle.Secondary),
                 );
 
                 // send dm
                 for(member of member_list){
-                    member.user.send({content: "Bonjour,\nTu as été invité à participer au tournoi du GIT sur "+process.env.TOURNAMENT_NAME+" en équipe de "+process.env.TOURNAMENT_TEAM_SIZE+". L'équipe dans laquelle tu es invité s'appelle "+team_name+" et est composée de : "+username_str, components: [row]})
+                    member.user.send({content: "Bonjour,\nTu as été invité à participer au tournoi du GIT sur "+process.env.TOURNAMENT_NAME+" en équipe de "+process.env.TOURNAMENT_TEAM_SIZE+". L'équipe dans laquelle tu es invité s'appelle `"+team_name+"` et est composée de : "+username_str, components: [row]})
                 }
 
-                interaction.reply({content: "Première étape de l'inscription réussite ! Maintenant, chaque membre de l'équipe doit répondre au bot dans ses messages privés. L'équipe s'appelle "+team_name+" et est composée de : "+username_str, ephemeral: true})
+                interaction.reply({content: "Première étape de l'inscription réussite ! Maintenant, chaque membre de l'équipe doit répondre au bot dans ses messages privés. L'équipe s'appelle `"+team_name+"` et est composée de : "+username_str, ephemeral: true})
 		
             } catch (error) {
                 if(interaction)

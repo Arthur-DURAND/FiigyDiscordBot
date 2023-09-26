@@ -127,7 +127,7 @@ class Logs {
             if(debugChannel != null) {
                 const embed = new EmbedBuilder()
                     .setColor("#7ccf69")
-                    .setTitle("INFO")
+                    .setTitle("DEBUG")
                     .setDescription(str)
                 debugChannel.send({content: "<@&"+process.env.LOGS_DEBUG_ROLE_ID+">", embeds: [embed]})
             } else {
