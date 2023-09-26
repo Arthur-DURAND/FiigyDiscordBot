@@ -25,7 +25,7 @@ class dbUtil {
 
     static async syncTables(sequelize) {
         // EMAILS
-        sequelize.define('user', {
+        let user = sequelize.define('user', {
             discord_id: {
                 type: Sequelize.STRING,
                 unique: true,
@@ -85,6 +85,54 @@ class dbUtil {
             }
         }, {
             tableName: 'EasterEggs',
+            timestamps: false
+        });
+
+        // INSCRIPTIONS
+        let team = sequelize.define('team', {
+            id: {
+                type: Sequelize.INTEGER,
+                autoIncrement: true,
+                unique: true,
+                primaryKey: true,
+                allowNull: false
+            },
+            name: {
+                type: Sequelize.STRING,
+                unique: true,
+                allowNull: false
+            }
+        }, {
+            tableName: 'Team',
+            timestamps: false
+        });
+
+        let team_member = sequelize.define('team_member', {
+            id: {
+                type: Sequelize.INTEGER,
+                autoIncrement: true,
+                unique: true,
+                primaryKey: true,
+                allowNull: false
+            },
+            discord_id: {
+                type: Sequelize.STRING,
+                unique: true,
+            },
+            team_id: {
+                type: Sequelize.INTEGER,
+                unique: true,
+                allowNull: false,
+            },
+            ready: {
+                type: Sequelize.BOOLEAN,
+                allowNull: false
+            },
+            ig_name: {
+                type: Sequelize.STRING
+            }
+        }, {
+            tableName: 'TeamMember',
             timestamps: false
         });
 

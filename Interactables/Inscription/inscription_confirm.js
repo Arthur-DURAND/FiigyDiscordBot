@@ -3,6 +3,8 @@ const { ActionRowBuilder, ButtonBuilder, ButtonStyle, TextInputBuilder } = requi
 const logs = require('../../Utils/Logs.js');
 const teams = require('./temp_teams.js')
 const RoleUtil = require('../../Utils/RoleUtil.js');
+const { Op } = require('sequelize')
+
 
 module.exports = {
 	name: "inscription_confirm",
@@ -10,7 +12,9 @@ module.exports = {
 
         try {
 
-            logs.debug(interaction.guild,interaction.user,"inscription_confirm",null)
+            const guild = interaction.client.guilds.cache.get(process.env.TOURNAMENT_GUILD_ID)
+
+            logs.debug(guild,interaction.user,"inscription_confirm",null)
 
             let identifiant = null
             if(interaction.fields)
@@ -22,13 +26,29 @@ module.exports = {
                 if(params.length > 1){
                     team_name = params[1]
                 } else {
-                    logs.error(interaction.guild, interaction.user, "inscription_confirm", "No team_name found in customId")
+                    logs.error(guild, interaction.user, "inscription_confirm", "No team_name found in customId")
                     return
                 }
             }
 
+            // Get team id
+            const team = await interaction.client.sequelize.models.team.findOne({ where: { name: team_name}})
+            if(!team){
+                interaction.reply({content: "Cette équipe n'existe plus !", ephemeral: true})
+                return
+            }
+
+            // Check if already accepted another team
+            let check_team_member = await interaction.client.sequelize.models.team_member.findOne({ where: { [Op.and]: {discord_id: interaction.user.id, ready: true, team_id: {[Op.not]: team.id}}}})
+            if(check_team_member){
+                interaction.reply({content: "Tu fais déjà parti d'une autre équipe !", ephemeral: true})
+                return
+            }
+
+            // Check if already accepted this team (thus == change of in game name)
             already_accepted = false
-            if(teams[interaction.user.id]){
+            check_team_member = await interaction.client.sequelize.models.team_member.findOne({ where: { [Op.and]: {discord_id: interaction.user.id, ready: true}} })
+            if(check_team_member){
                 already_accepted = true
             }
 
@@ -37,18 +57,15 @@ module.exports = {
                 return
             }
 
-            if(!teams[team_name]){
-                interaction.reply({content: "Une erreur s'est produite avec cette team. La team a sûrement déjà été inscrit, ou le bot a redémarré. Reessaye dans le doute !", ephemeral: true})
-                return
-            }
-
-            if(!interaction.user.id in teams[team_name]){
-                interaction.reply({content: "Une erreur s'est produite avec cette team. La team a sûrement déjà été inscrit, ou le bot a redémarré. Reessaye dans le doute !", ephemeral: true})
-                return
-            }
-
             // add id to data
-            teams[team_name][interaction.user.id]["id"] = identifiant
+            await interaction.client.sequelize.models.team_member.update({ ig_name: identifiant, ready: true }, {
+                where: {
+                    [Op.and]: {
+                        discord_id: interaction.user.id, 
+                        team_id: team.id
+                    }
+                }
+              });
 
             if(already_accepted){
                 interaction.reply({content: "Changement d'identifiant réussie !", ephemeral: true})
@@ -65,40 +82,29 @@ module.exports = {
                 );
             
             // Check if registration is finished
-            registration_finished = true
-            let log_team = ""
-            for(let [team_member_id,team_member] of Object.entries(teams[team_name])){
-                if(!team_member || !team_member["id"]){
-                    registration_finished = false
-                } else {
-                    log_team = log_team + "\n   - " + team_member_id + " : <@" + team_member_id + "> : " + team_member["username"] + " : " + team_member["id"] 
-                }
-            }
-
-            if(!registration_finished){
-                // Send dm
+            registration_not_finished = await interaction.client.sequelize.models.team_member.findOne({ where: { [Op.and]: {ready: false, team_id: team.id}} })
+            if(registration_not_finished){
                 interaction.user.send({content: "Status de l'inscription pour "+process.env.TOURNAMENT_NAME, components: [row]})
             } else {
-                // Logs
-                let log = team_name+" :" + log_team
-                let logChannel = await interaction.client.channels.cache.get(process.env.TOURNAMENT_LOG_CHANNEL_ID);
-                if(!logChannel){
-                    logs.error(interaction.guild, interaction.user, "inscription_confirm", "Cannot get logChannel! : "+log)
-                    return
-                }
-                logChannel.send(log)
-
-                // Send dm to all
-                let guild = await interaction.client.guilds.cache.get(process.env.TOURNAMENT_GUILD_ID);
-                for(let team_member_id of Object.keys(teams[team_name])){
-                    team_member = await guild.members.fetch(team_member_id)
-                    //team_member = await interaction.client.users.fetch(team_member_id);
-                    if(team_member && team_member.user){
-                        await RoleUtil.giveRole(guild, team_member,process.env.CONTENDER_ROLE)
-
-                        team_member.user.send("Inscription sur "+process.env.TOURNAMENT_NAME+" réussie !")
+                team_members = await interaction.client.sequelize.models.team_member.findAll({ where: {team_id: team.id}})
+                let log_team = "**" + team.name + "**"
+                let contender_role = await guild.roles.fetch(process.env.CONTENDER_ROLE_ID)
+                
+                for(team_member of team_members){
+                    log_team += "\n• <@" + team_member.discord_id + "> ; " + team_member.discord_id + " ; " + team_member.ig_name 
+                    let member = await guild.members.fetch(team_member.discord_id)
+                    if(member && member.user){
+                        await RoleUtil.giveRoleKnowingRole(guild,member,contender_role)
+                        member.user.send("Inscription pour le tournois "+process.env.TOURNAMENT_NAME+" réussie !")
+                        // TODO Tes teammates sont :
                     }
                 }
+                let logChannel = await interaction.client.channels.cache.get(process.env.TOURNAMENT_LOG_CHANNEL_ID);
+                if(!logChannel){
+                    logs.error(guild, interaction.user, "inscription_confirm", "Cannot get logChannel! : "+log_team)
+                    return
+                }
+                logChannel.send(log_team)
             }            
         } catch (error) {
 			if(interaction)
