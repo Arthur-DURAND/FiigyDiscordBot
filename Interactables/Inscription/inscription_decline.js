@@ -1,10 +1,15 @@
 
 const { ActionRowBuilder, ModalBuilder, TextInputStyle, TextInputBuilder } = require('discord.js');
 const logs = require('../../Utils/Logs.js');
+const { Transaction } = require('sequelize')
 
 module.exports = {
 	name: "inscription_decline",
 	async execute(interaction) {
+
+        const t = await interaction.client.sequelize.transaction({
+            isolationLevel: Transaction.ISOLATION_LEVELS.REPEATABLE_READ
+        });
 
         try {
 
@@ -26,14 +31,14 @@ module.exports = {
             }
 
             // Get team id from team name
-            const team = await interaction.client.sequelize.models.team.findOne({ where: { name: team_name}})
+            const team = await interaction.client.sequelize.models.team.findOne({ where: { name: team_name}, transaction: t })
             if(!team){
                 interaction.reply({content: "Cette équipe n'existe plus !", ephemeral: true})
                 return
             }
 
             // Get all ids
-            const team_members = await interaction.client.sequelize.models.team_member.findAll({ where: {team_id: team.id}})
+            const team_members = await interaction.client.sequelize.models.team_member.findAll({ where: {team_id: team.id}, transaction: t })
             if(!team_members){
                 interaction.reply({content: "Il n'y a personne dans cette équipe ! Etrange...", ephemeral: true})
                 return
@@ -53,7 +58,7 @@ module.exports = {
                 }
             }
 
-            await interaction.client.sequelize.models.team.destroy({ where: {id: team.id}})
+            await interaction.client.sequelize.models.team.destroy({ where: {id: team.id}, transaction: t })
             
             if(ready){
                 let logChannel = await interaction.client.channels.cache.get(process.env.TOURNAMENT_LOG_CHANNEL_ID);
@@ -61,10 +66,13 @@ module.exports = {
                     logChannel.send("L'équipe `"+team_name+"` a été supprimée !")
                 }
             }
+
+            await t.commit();
         
             await interaction.reply("Fait !");
 
         } catch (error) {
+            await t.rollback();
 			if(interaction)
 				logs.error(interaction.guild,interaction.user,"inscription_decline",error)
 			else

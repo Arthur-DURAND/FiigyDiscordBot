@@ -1,6 +1,6 @@
 const { ButtonStyle, ButtonBuilder, TextInputStyle, SlashCommandBuilder, CommandInteraction, PermissionFlagsBits, ActionRowBuilder } = require("discord.js")
 const logs = require('../../Utils/Logs.js');
-const { Op } = require('sequelize')
+const { Op, Transaction } = require('sequelize')
 
 let command = new SlashCommandBuilder()
                 .setName("inscription")
@@ -19,6 +19,10 @@ module.exports = {
 		 */
 		async execute(interaction) {
 
+            const t = await interaction.client.sequelize.transaction({
+                isolationLevel: Transaction.ISOLATION_LEVELS.REPEATABLE_READ
+            })
+
             try {
 
                 if (!interaction.isChatInputCommand()) return;
@@ -33,7 +37,7 @@ module.exports = {
                 const team_name = interaction.options.getString('team_name');
 
                 // Check if team name already exists
-                const check_team = await interaction.client.sequelize.models.team.findOne({ where: { name: team_name} })
+                const check_team = await interaction.client.sequelize.models.team.findOne({ where: { name: team_name}, transaction: t })
                 if (check_team) {
                     interaction.reply({content: "Une équipe au nom `"+team_name+"` existe déjà !", ephemeral: true})
                     return
@@ -61,9 +65,9 @@ module.exports = {
                     interaction.reply({content: "L'utilisateur <@"+interaction.user.id+"> est déjà inscrit dans une équipe !", ephemeral: true})
                     return
                 }*/
-                let check_team_member = await interaction.client.sequelize.models.team_member.findAll({ where: { [Op.and]: {discord_id: interaction.user.id, ready: true }}})
+                let check_team_member = await interaction.client.sequelize.models.team_member.findAll({ where: { [Op.and]: {discord_id: interaction.user.id, ready: true }}, transaction: t})
                     for(let team_member of check_team_member){
-                        let check_team_ready = await interaction.client.sequelize.models.team_member.findOne({ where: { [Op.and]: {ready: false, team_id: team_member.team_id}}})
+                        let check_team_ready = await interaction.client.sequelize.models.team_member.findOne({ where: { [Op.and]: {ready: false, team_id: team_member.team_id}}, transaction: t})
                         if(!check_team_ready){
                             interaction.reply({content: "L'utilisateur <@"+interaction.user.id+"> est déjà inscrit dans une équipe !", ephemeral: true})
                         return
@@ -94,9 +98,9 @@ module.exports = {
 
                     // Check not in team
                     // Check if already accepted another team
-                    let check_team_member = await interaction.client.sequelize.models.team_member.findAll({ where: { [Op.and]: {discord_id: user.id, ready: true }}})
+                    let check_team_member = await interaction.client.sequelize.models.team_member.findAll({ where: { [Op.and]: {discord_id: user.id, ready: true }}, transaction: t})
                     for(let team_member of check_team_member){
-                        let check_team_ready = await interaction.client.sequelize.models.team_member.findOne({ where: { [Op.and]: {ready: false, team_id: team_member.team_id}}})
+                        let check_team_ready = await interaction.client.sequelize.models.team_member.findOne({ where: { [Op.and]: {ready: false, team_id: team_member.team_id}}, transaction: t})
                         if(!check_team_ready){
                             interaction.reply({content: "L'utilisateur <@"+user.id+"> est déjà inscrit dans une équipe !", ephemeral: true})
                         return
@@ -114,14 +118,14 @@ module.exports = {
 
                 const team = await interaction.client.sequelize.models.team.create({
                     name: team_name
-                })
+                }, {transaction: t})
                 
                 for(let i=0 ; i<member_id_list.length ; i++){
                     await interaction.client.sequelize.models.team_member.create({
                         discord_id: member_id_list[i],
                         team_id: team.id,
                         ready: false
-                    })
+                    }, { transaction: t })
                 }
 
                 let message = "Equipe en cours d'inscription : "
@@ -147,9 +151,12 @@ module.exports = {
                     member.user.send({content: "Bonjour,\nTu as été invité à participer au tournoi du GIT sur "+process.env.TOURNAMENT_NAME+" en équipe de "+process.env.TOURNAMENT_TEAM_SIZE+". L'équipe dans laquelle tu es invité s'appelle `"+team_name+"` et est composée de : "+username_str, components: [row]})
                 }
 
+                await t.commit();
+
                 interaction.reply({content: "Première étape de l'inscription réussite ! Maintenant, chaque membre de l'équipe doit répondre au bot dans ses messages privés. L'équipe s'appelle `"+team_name+"` et est composée de : "+username_str, ephemeral: true})
 		
             } catch (error) {
+                await t.rollback();
                 if(interaction)
                     logs.error(interaction.guild,interaction.user,"inscription",error)
                 else

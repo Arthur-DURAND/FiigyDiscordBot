@@ -3,12 +3,16 @@ const { ActionRowBuilder, ButtonBuilder, ButtonStyle, TextInputBuilder } = requi
 const logs = require('../../Utils/Logs.js');
 const teams = require('./temp_teams.js')
 const RoleUtil = require('../../Utils/RoleUtil.js');
-const { Op } = require('sequelize')
+const { Op, Transaction } = require('sequelize')
 
 
 module.exports = {
 	name: "inscription_confirm",
 	async execute(interaction) {
+
+        const t = await interaction.client.sequelize.transaction({
+            isolationLevel: Transaction.ISOLATION_LEVELS.REPEATABLE_READ
+        });
 
         try {
 
@@ -32,16 +36,16 @@ module.exports = {
             }
 
             // Get team id
-            const team = await interaction.client.sequelize.models.team.findOne({ where: { name: team_name}})
+            const team = await interaction.client.sequelize.models.team.findOne({ where: { name: team_name}, transaction: t })
             if(!team){
                 interaction.reply({content: "Cette équipe n'existe plus !", ephemeral: true})
                 return
             }
 
             // Check if already accepted another team
-            let check_team_member = await interaction.client.sequelize.models.team_member.findAll({ where: { [Op.and]: {discord_id: interaction.user.id, ready: true, team_id: {[Op.not]: team.id}}}})
+            let check_team_member = await interaction.client.sequelize.models.team_member.findAll({ where: { [Op.and]: {discord_id: interaction.user.id, ready: true, team_id: {[Op.not]: team.id}}}, transaction: t })
             for(let team_member of check_team_member){
-                let check_team_ready = await interaction.client.sequelize.models.team_member.findOne({ where: { [Op.and]: {ready: false, team_id: team_member.team_id}}})
+                let check_team_ready = await interaction.client.sequelize.models.team_member.findOne({ where: { [Op.and]: {ready: false, team_id: team_member.team_id}}, transaction: t })
                 if(!check_team_ready){
                     interaction.reply({content: "Tu fais déjà parti d'une autre équipe !", ephemeral: true})
                     return
@@ -50,7 +54,7 @@ module.exports = {
 
             // Check if already accepted this team (thus == change of in game name)
             already_accepted = false
-            check_team_member = await interaction.client.sequelize.models.team_member.findOne({ where: { [Op.and]: {discord_id: interaction.user.id, ready: true, team_id: team.id}} })
+            check_team_member = await interaction.client.sequelize.models.team_member.findOne({ where: { [Op.and]: {discord_id: interaction.user.id, ready: true, team_id: team.id}}, transaction: t })
             if(check_team_member){
                 already_accepted = true
             }
@@ -67,7 +71,7 @@ module.exports = {
                         discord_id: interaction.user.id, 
                         team_id: team.id
                     }
-                }
+                }}, {transaction: t 
             });
 
             if(already_accepted){
@@ -85,17 +89,21 @@ module.exports = {
                 );
             
             // Check if registration is finished
-            registration_not_finished = await interaction.client.sequelize.models.team_member.findOne({ where: { [Op.and]: {ready: false, team_id: team.id}} })
+            registration_not_finished = await interaction.client.sequelize.models.team_member.findOne({ where: { [Op.and]: {ready: false, team_id: team.id, discord_id:{[Op.not]: interaction.user.id}}}, transaction: t })
             if(registration_not_finished){
                 interaction.user.send({content: "Status de l'inscription pour le tournois "+process.env.TOURNAMENT_NAME+", équipe `"+team_name+"`.", components: [row]})
             } else {
                 if(guild){                
-                    team_members = await interaction.client.sequelize.models.team_member.findAll({ where: {team_id: team.id}})
+                    team_members = await interaction.client.sequelize.models.team_member.findAll({ where: {team_id: team.id}, transaction: t})
                     let log_team = "**" + team.name + "**"
                     let contender_role = await guild.roles.fetch(process.env.CONTENDER_ROLE_ID)
                     
                     for(team_member of team_members){
-                        log_team += "\n• <@" + team_member.discord_id + "> ; " + team_member.discord_id + " ; " + team_member.ig_name 
+                        if(team_member.discord_id == interaction.user.id){
+                            log_team += "\n• <@" + team_member.discord_id + "> ; " + team_member.discord_id + " ; " + identifiant
+                        } else {
+                            log_team += "\n• <@" + team_member.discord_id + "> ; " + team_member.discord_id + " ; " + team_member.ig_name
+                        }
                         let member = await guild.members.fetch(team_member.discord_id)
                         if(member && member.user){
                             await RoleUtil.giveRoleKnowingRole(guild,member,contender_role)
@@ -107,7 +115,8 @@ module.exports = {
                                         discord_id: team_member.discord_id, 
                                         team_id: { [Op.not]: team.id }
                                     }
-                                }
+                                }},
+                                { transaction: t 
                             });
                         }
                     }
@@ -118,8 +127,12 @@ module.exports = {
                     }
                     logChannel.send(log_team)
                 }
-            }            
+            }
+            
+            await t.commit();
+
         } catch (error) {
+            await t.rollback();
 			if(interaction)
 				logs.error(interaction.guild,interaction.user,"inscription_confirm",error)
 			else
