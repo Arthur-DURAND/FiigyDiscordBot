@@ -39,15 +39,18 @@ module.exports = {
             }
 
             // Check if already accepted another team
-            let check_team_member = await interaction.client.sequelize.models.team_member.findOne({ where: { [Op.and]: {discord_id: interaction.user.id, ready: true, team_id: {[Op.not]: team.id}}}})
-            if(check_team_member){
-                interaction.reply({content: "Tu fais déjà parti d'une autre équipe !", ephemeral: true})
-                return
+            let check_team_member = await interaction.client.sequelize.models.team_member.findAll({ where: { [Op.and]: {discord_id: interaction.user.id, ready: true, team_id: {[Op.not]: team.id}}}})
+            for(let team_member of check_team_member){
+                let check_team_ready = await interaction.client.sequelize.models.team_member.findOne({ where: { [Op.and]: {ready: false, team_id: team_member.team_id}}})
+                if(!check_team_ready){
+                    interaction.reply({content: "Tu fais déjà parti d'une autre équipe !", ephemeral: true})
+                    return
+                }
             }
 
             // Check if already accepted this team (thus == change of in game name)
             already_accepted = false
-            check_team_member = await interaction.client.sequelize.models.team_member.findOne({ where: { [Op.and]: {discord_id: interaction.user.id, ready: true}} })
+            check_team_member = await interaction.client.sequelize.models.team_member.findOne({ where: { [Op.and]: {discord_id: interaction.user.id, ready: true, team_id: team.id}} })
             if(check_team_member){
                 already_accepted = true
             }
@@ -65,7 +68,7 @@ module.exports = {
                         team_id: team.id
                     }
                 }
-              });
+            });
 
             if(already_accepted){
                 interaction.reply({content: "Changement d'identifiant réussie !", ephemeral: true})
@@ -84,7 +87,7 @@ module.exports = {
             // Check if registration is finished
             registration_not_finished = await interaction.client.sequelize.models.team_member.findOne({ where: { [Op.and]: {ready: false, team_id: team.id}} })
             if(registration_not_finished){
-                interaction.user.send({content: "Status de l'inscription pour "+process.env.TOURNAMENT_NAME, components: [row]})
+                interaction.user.send({content: "Status de l'inscription pour le tournois "+process.env.TOURNAMENT_NAME+", équipe `"+team_name+"`.", components: [row]})
             } else {
                 if(guild){                
                     team_members = await interaction.client.sequelize.models.team_member.findAll({ where: {team_id: team.id}})
@@ -96,8 +99,16 @@ module.exports = {
                         let member = await guild.members.fetch(team_member.discord_id)
                         if(member && member.user){
                             await RoleUtil.giveRoleKnowingRole(guild,member,contender_role)
-                            member.user.send("Inscription pour le tournois "+process.env.TOURNAMENT_NAME+" réussie !")
-                            // TODO Tes teammates sont :
+                            member.user.send("Inscription pour le tournois "+process.env.TOURNAMENT_NAME+" réussie ! Ton équipe s'appelle `"+team_name+"`.")
+                            // Set other team to not rdy
+                            await interaction.client.sequelize.models.team_member.update({ ready: false }, {
+                                where: {
+                                    [Op.and]: {
+                                        discord_id: team_member.discord_id, 
+                                        team_id: { [Op.not]: team.id }
+                                    }
+                                }
+                            });
                         }
                     }
                     let logChannel = await interaction.client.channels.cache.get(process.env.TOURNAMENT_LOG_CHANNEL_ID);

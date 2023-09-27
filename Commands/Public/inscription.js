@@ -1,6 +1,5 @@
 const { ButtonStyle, ButtonBuilder, TextInputStyle, SlashCommandBuilder, CommandInteraction, PermissionFlagsBits, ActionRowBuilder } = require("discord.js")
 const logs = require('../../Utils/Logs.js');
-const teams = require('../../Interactables/Inscription/temp_teams.js')
 const { Op } = require('sequelize')
 
 let command = new SlashCommandBuilder()
@@ -36,7 +35,7 @@ module.exports = {
                 // Check if team name already exists
                 const check_team = await interaction.client.sequelize.models.team.findOne({ where: { name: team_name} })
                 if (check_team) {
-                    interaction.reply({content: "Une équipe au nom "+team_name+" existe déjà !", ephemeral: true})
+                    interaction.reply({content: "Une équipe au nom `"+team_name+"` existe déjà !", ephemeral: true})
                     return
                 }
 
@@ -57,11 +56,19 @@ module.exports = {
                 let member_id_list = [interaction.user.id]
                 let member_list = [author]
                 let username_str = interaction.user.displayName
-                let check_player = await interaction.client.sequelize.models.team_member.findOne({ where: { [Op.and]: {discord_id: interaction.user.id, ready: true}} })
+                /*let check_player = await interaction.client.sequelize.models.team_member.findOne({ where: { [Op.and]: {discord_id: interaction.user.id, ready: true}} })
                 if(check_player){
                     interaction.reply({content: "L'utilisateur <@"+interaction.user.id+"> est déjà inscrit dans une équipe !", ephemeral: true})
                     return
-                }
+                }*/
+                let check_team_member = await interaction.client.sequelize.models.team_member.findAll({ where: { [Op.and]: {discord_id: interaction.user.id, ready: true }}})
+                    for(let team_member of check_team_member){
+                        let check_team_ready = await interaction.client.sequelize.models.team_member.findOne({ where: { [Op.and]: {ready: false, team_id: team_member.team_id}}})
+                        if(!check_team_ready){
+                            interaction.reply({content: "L'utilisateur <@"+interaction.user.id+"> est déjà inscrit dans une équipe !", ephemeral: true})
+                        return
+                        }
+                    }
 
                 for(let i=1 ; i<process.env.TOURNAMENT_TEAM_SIZE ; i++){
                     const user = interaction.options.getUser('player'+i)
@@ -86,11 +93,21 @@ module.exports = {
                     }
 
                     // Check not in team
-                    check_player = await interaction.client.sequelize.models.team_member.findOne({ where: { [Op.and]: {discord_id: user.id, ready: true}} })
+                    // Check if already accepted another team
+                    let check_team_member = await interaction.client.sequelize.models.team_member.findAll({ where: { [Op.and]: {discord_id: user.id, ready: true }}})
+                    for(let team_member of check_team_member){
+                        let check_team_ready = await interaction.client.sequelize.models.team_member.findOne({ where: { [Op.and]: {ready: false, team_id: team_member.team_id}}})
+                        if(!check_team_ready){
+                            interaction.reply({content: "L'utilisateur <@"+user.id+"> est déjà inscrit dans une équipe !", ephemeral: true})
+                        return
+                        }
+                    }
+
+                    /*check_player = await interaction.client.sequelize.models.team_member.findOne({ where: { [Op.and]: {discord_id: user.id, ready: true}} })
                     if(check_player){
                         interaction.reply({content: "L'utilisateur <@"+user.id+"> est déjà inscrit dans une équipe !", ephemeral: true})
                         return
-                    }
+                    }*/
 
                     username_str = username_str + " ; " + user.displayName
                 }
@@ -112,9 +129,6 @@ module.exports = {
                     message += "<@"+member.user.id+"> "
                 }
                 logs.info(interaction.guild,interaction.user,"inscription",message)
-
-                // Add team
-                teams[team_name] = team
 
                 const row = new ActionRowBuilder()
                     .addComponents(
