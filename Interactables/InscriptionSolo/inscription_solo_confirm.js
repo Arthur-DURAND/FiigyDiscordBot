@@ -2,11 +2,16 @@
 const { ActionRowBuilder, ModalBuilder, TextInputStyle, TextInputBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const logs = require('../../Utils/Logs.js');
 const RoleUtil = require('../../Utils/RoleUtil.js');
+const { Op, Transaction } = require('sequelize')
 
 
 module.exports = {
 	name: "inscription_solo_confirm",
 	async execute(interaction) {
+
+        const t = await interaction.client.sequelize.transaction({
+            isolationLevel: Transaction.ISOLATION_LEVELS.REPEATABLE_READ
+        });
 
         try {
 
@@ -44,12 +49,24 @@ module.exports = {
             const channel = interaction.guild.channels.cache.get(process.env.TOURNAMENT_LOG_CHANNEL_ID)
             channel.send(log)
 
+            const team = await interaction.client.sequelize.models.team.create({
+                name: interaction.user.username + "#" + interaction.user.discriminator
+            }, {transaction: t})
+            await interaction.client.sequelize.models.team_member.create({
+                discord_id: interaction.user.id,
+                team_id: team.id,
+                ready: true
+            }, { transaction: t })
+
             let role = await interaction.guild.roles.fetch(process.env.CONTENDER_ROLE_ID)
             RoleUtil.giveRoleKnowingRole(interaction.guild,member,role)
             if(interaction.channel)
                 await interaction.update({ content: text, components:[], ephemeral: true })
 
+            await t.commit()
+
         } catch (error) {
+            await t.rollback()
 			if(interaction)
 				logs.error(interaction.guild,interaction.user,"inscription_solo",error)
 			else

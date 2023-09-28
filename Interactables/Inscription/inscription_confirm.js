@@ -30,6 +30,7 @@ module.exports = {
                 if(params.length > 1){
                     team_name = params[1]
                 } else {
+                    await t.rollback();
                     logs.error(guild, interaction.user, "inscription_confirm", "No team_name found in customId")
                     return
                 }
@@ -38,6 +39,7 @@ module.exports = {
             // Get team id
             const team = await interaction.client.sequelize.models.team.findOne({ where: { name: team_name}, transaction: t })
             if(!team){
+                await t.rollback();
                 interaction.reply({content: "Cette équipe n'existe plus !", ephemeral: true})
                 return
             }
@@ -47,6 +49,7 @@ module.exports = {
             for(let team_member of check_team_member){
                 let check_team_ready = await interaction.client.sequelize.models.team_member.findOne({ where: { [Op.and]: {ready: false, team_id: team_member.team_id}}, transaction: t })
                 if(!check_team_ready){
+                    await t.rollback();
                     interaction.reply({content: "Tu fais déjà parti d'une autre équipe !", ephemeral: true})
                     return
                 }
@@ -60,6 +63,7 @@ module.exports = {
             }
 
             if(!identifiant){
+                await t.rollback();
                 interaction.reply({content: "Une erreur s'est produite avec ton identifiant. Reessaye !", ephemeral: true})
                 return
             }
