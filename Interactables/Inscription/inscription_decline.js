@@ -13,7 +13,7 @@ module.exports = {
 
         try {
 
-            const guild = interaction.client.guilds.cache.get(process.env.TOURNAMENT_GUILD_ID)
+            const guild = interaction.client.guilds.cache.get(process.env.PRODUCTION_GUILD_ID)
 
 
             logs.debug(guild,interaction.user,"inscription_decline",null)

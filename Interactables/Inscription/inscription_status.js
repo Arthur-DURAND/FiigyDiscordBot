@@ -41,7 +41,7 @@ module.exports = {
 
             user_registered = ""
             user_not_registered = ""
-            const guild = interaction.client.guilds.cache.get(process.env.TOURNAMENT_GUILD_ID)
+            const guild = interaction.client.guilds.cache.get(process.env.PRODUCTION_GUILD_ID)
             if(guild){
                 for(let team_member of team_members){
                     let member = await guild.members.fetch(team_member.discord_id)

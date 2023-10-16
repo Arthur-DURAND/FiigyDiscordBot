@@ -67,7 +67,7 @@ module.exports = {
                 let member_id_list = [interaction.user.id]
                 let member_list = [author]
                 let username_str = interaction.user.displayName
-                let teamAlumni = false
+                
                 /*let check_player = await interaction.client.sequelize.models.team_member.findOne({ where: { [Op.and]: {discord_id: interaction.user.id, ready: true}} })
                 if(check_player){
                     interaction.reply({content: "L'utilisateur <@"+interaction.user.id+"> est déjà inscrit dans une équipe !", ephemeral: true})
@@ -90,15 +90,21 @@ module.exports = {
                 }
 
                 let alumni = await isMemberAlumni(author)
-
-                if(alumni){
-                    teamAlumni = true
-                }
-
+                let numberVerifiedMembers = 0
+                let numberAlumni = 0
+                let verifiedMemberList = []
+                let notVerifiedMemberList = []
                 if(!alumni && !await isMemberVerified(author)){
-                    await t.rollback();
+                    notVerifiedMemberList.push(interaction.user.id)
+                    /*await t.rollback();
                     interaction.reply({content: "L'utilisateur <@"+interaction.user.id+"> n'a pas vérifié son email !", ephemeral: true})
-                    return
+                    return*/
+                } else if (alumni) {
+                    numberAlumni++
+                    verifiedMemberList.push(interaction.user.id)
+                } else {
+                    numberVerifiedMembers++
+                    verifiedMemberList.push(interaction.user.id)
                 }
                 
 
@@ -135,18 +141,44 @@ module.exports = {
                     }
 
                     alumni = await isMemberAlumni(member)
-                    if(alumni){
-                        teamAlumni = true
-                    }
-
                     if(!alumni && !await isMemberVerified(member)){
+                        notVerifiedMemberList.push(user.id)
+                        /*
                         await t.rollback()
                         interaction.reply({content: "L'utilisateur <@"+user.id+"> n'a pas vérifié son email !", ephemeral: true})
-                        return
+                        return*/
+                    } else if (alumni) {
+                        numberAlumni++
+                        verifiedMemberList.push(user.id)
+                    } else {
+                        numberVerifiedMembers++
+                        verifiedMemberList.push(user.id)
                     }
 
                     username_str = username_str + " ; " + user.displayName
                 }
+
+                if(numberVerifiedMembers + numberAlumni < Math.min(process.env.TOURNAMENT_MIN_VERIFIED_MEMBERS, process.env.TOURNAMENT_TEAM_SIZE)){
+                    await t.rollback()
+                    let replyMessage = "Il est nécessaire d'avoir " + Math.min(process.env.TOURNAMENT_MIN_VERIFIED_MEMBERS, process.env.TOURNAMENT_TEAM_SIZE) + 
+                                        " joueurs ayant vérifié leur email INSA par équipe ! Seuls "+numberVerifiedMembers+" joueurs l'ont fait :\n- "
+                    for(let userId of verifiedMemberList){
+                        replyMessage += "<@" + userId +"> "
+                    }
+                    replyMessage += "\nLes joueurs n'ayant pas vérifiés leur email INSA sont :\n- "
+                    for(let userId of notVerifiedMemberList){
+                        replyMessage += "<@" + userId +"> "
+                    }
+                    interaction.reply({content: replyMessage, ephemeral: true})
+                    return
+                }
+
+                let teamAlumni = false
+                if(numberVerifiedMembers < Math.min(process.env.TOURNAMENT_MIN_VERIFIED_MEMBERS, process.env.TOURNAMENT_TEAM_SIZE) && 
+                        numberVerifiedMembers + numberAlumni >= Math.min(process.env.TOURNAMENT_MIN_VERIFIED_MEMBERS, process.env.TOURNAMENT_TEAM_SIZE)){
+                    teamAlumni = true
+                }
+
                 const team = await interaction.client.sequelize.models.team.create({
                     name: team_name
                 }, {transaction: t})
