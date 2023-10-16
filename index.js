@@ -1,17 +1,18 @@
 const { Client, GatewayIntentBits, Partials, Collection } = require("discord.js")
 
-const { Guilds, GuildMembers, GuildMessages, MessageContent } = GatewayIntentBits
+const { Guilds, GuildMembers, GuildMessages, MessageContent, GuildPresences } = GatewayIntentBits
 const { User, Message, GuildMember, ThreadMember } = Partials 
 
 const { loadEvents } = require("./Handlers/eventHandler")
 const { loadCommands } = require("./Handlers/commandHandler")
 const { loadInteracts } = require("./Handlers/interactsHandler")
+const { startSchedules } = require("./Handlers/schedulesHandler")
 const dbUtil = require('./Utils/dbUtil.js');
 
 require('dotenv').config();
 
 const client = new Client({
-	intents: [Guilds, GuildMembers, GuildMessages, MessageContent], 
+	intents: [Guilds, GuildMembers, GuildMessages, MessageContent, GuildPresences], 
 	partials: [User, Message, GuildMember, ThreadMember],
 })
 
@@ -28,6 +29,7 @@ client
 		loadEvents(client)
 		loadCommands(client)
 		loadInteracts(client)
+		startSchedules(client)
 		dbUtil.testConnection(client.sequelize)
 		dbUtil.syncTables(client.sequelize)
 	})

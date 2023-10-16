@@ -11,18 +11,6 @@ module.exports = {
 
             logs.debug(interaction.guild,interaction.user,"wordle_choose_word",null)
 
-            const [_, ...params] = interaction.customId.split("?")
-            if(params.length < 1){
-                logs.error(interaction.guild,interaction.user,"wordle_choose_word","No params")
-                await interaction.reply({content: "Une erreur s'est produite.", ephemeral: true})
-                return
-            } else {
-                if(params[0] !== interaction.user.id){
-                    await interaction.reply({content: "Cette partie a été démarrée par quelqu'un d'autre !", ephemeral: true})
-                    return
-                }
-            }
-
             const modal = new ModalBuilder()
 			.setCustomId('wordle_play')
 			.setTitle("Wordle")
@@ -35,7 +23,7 @@ module.exports = {
                             .setStyle(TextInputStyle.Short)
                     ),
             )
-
+            
             await interaction.showModal(modal);
         } catch (error) {
 			if(interaction)

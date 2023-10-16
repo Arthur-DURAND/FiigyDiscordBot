@@ -9,6 +9,10 @@ class RoleUtil {
             logs.warn(guild,member.user,"RoleUtils.giveOrTakeRole","Role not found: " + roleName)
             return console.log("Role not found: " + roleName)
         }
+        if(!member){
+            logs.warn(guild,null,"RoleUtils.giveOrTakeRole","Member not found: " + member)
+            return console.log("member not found: " + member)
+        }
         
         if (member.roles.cache.has(role.id)){
             try {
@@ -32,6 +36,10 @@ class RoleUtil {
             logs.warn(guild,member.user,"RoleUtils.removeRole","Role not found: " + roleName)
             return console.log("Role not found: " + roleName)
         }
+        if(!member){
+            logs.warn(guild,null,"RoleUtils.removeRole","Member not found: " + member)
+            return console.log("member not found: " + member)
+        }
         
         if (member.roles.cache.has(role.id)) {
             try {
@@ -50,7 +58,10 @@ class RoleUtil {
             logs.warn(guild,member.user,"RoleUtils.giveRole","Role not found: " + roleName)
             return console.log("Role not found: " + roleName)
         }
-        
+        if(!member){
+            logs.warn(guild,null,"RoleUtils.giveRole","Member not found: " + member)
+            return console.log("member not found: " + member)
+        }
         try {
             await member.roles.add(role)
         } catch (error) {
@@ -63,7 +74,10 @@ class RoleUtil {
             logs.warn(guild,member.user,"RoleUtils.giveRoleKnowingRole","Role not found: " + role)
             return console.log("Role not found: " + role)
         }
-        
+        if(!member){
+            logs.warn(guild,null,"RoleUtils.giveRoleKnowingRole","Member not found: " + member)
+            return console.log("member not found: " + member)
+        }
         await member.roles.add(role)
     }
 
@@ -71,6 +85,10 @@ class RoleUtil {
         if (!role) {
             logs.warn(guild,member.user,"RoleUtils.removeRoleKnowingRole","Role not found: " + role)
             return console.log("Role not found: " + role)
+        }
+        if(!member){
+            logs.warn(guild,null,"RoleUtils.removeRoleKnowingRole","Member not found: " + member)
+            return console.log("member not found: " + member)
         }
         
         await member.roles.remove(role)
@@ -81,6 +99,10 @@ class RoleUtil {
 
         if (!role)
             return false
+        if(!member){
+            logs.warn(guild,null,"RoleUtils.removeRoleKnowingRole","Member not found: " + member)
+            return false
+        }
         
         return member.roles.cache.has(role.id)
     }
@@ -111,6 +133,14 @@ class RoleUtil {
             return role.id
         }
         return null
+    }
+
+    static async removeEveryoneFromRole(role){
+        role.members.forEach((member, _1, _2) => {
+            if(member){
+                member.roles.remove(role.id)
+            }
+        })
     }
 
 }

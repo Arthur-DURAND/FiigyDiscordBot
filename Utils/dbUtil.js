@@ -136,7 +136,41 @@ class dbUtil {
             timestamps: false
         });
 
-        // TODO DISCORD GAMES
+        sequelize.define('singleton', {
+            name: {
+                type: Sequelize.STRING,
+                unique: true,
+                primaryKey: true,
+                allowNull: false
+            },
+            value: {
+                type: Sequelize.STRING
+            },
+        }, {
+            tableName: 'Singleton',
+            timestamps: false
+        });
+
+        sequelize.define('discord_games', {
+            discord_id: {
+                type: Sequelize.STRING,
+                unique: true,
+                primaryKey: true,
+                allowNull: false
+            },
+            wordle_wins: {
+                type: Sequelize.INTEGER,
+                defaultValue: 0,
+                allowNull: false
+            },
+            wordle_words_played: {
+                type: Sequelize.STRING,
+                allowNull: false
+            }
+        }, {
+            tableName: 'DiscordGames',
+            timestamps: false
+        });
         
         sequelize.sync()
 

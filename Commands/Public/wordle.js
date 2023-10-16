@@ -1,7 +1,6 @@
 const { ActionRowBuilder, ButtonStyle, ButtonBuilder, SlashCommandBuilder, CommandInteraction, PermissionFlagsBits, EmbedBuilder } = require("discord.js")
 const logs = require('../../Utils/Logs.js');
-const wordle_games = require('../../Interactables/Wordle/temp_wordle.js')
-const WORDS = require("../../Interactables/Wordle/words.js");
+const { Op, Transaction } = require('sequelize')
 
 
 module.exports = {
@@ -14,47 +13,73 @@ module.exports = {
 		 * @param {CommandInteraction} interaction
 		 */
 		async execute(interaction) {
-			if(!interaction.guild)
-				console.log("Error wordle : interaction.guild is null")
 
-			logs.debug(interaction.guild,interaction.user,"wordle",null)
+			const t = await interaction.client.sequelize.transaction({
+                isolationLevel: Transaction.ISOLATION_LEVELS.REPEATABLE_READ
+            })
 
-			if(interaction.channelId !== process.env.WORDLE_PLAY_CHANNEL_ID){
-				await interaction.reply({content: "Ce n'est pas le bon channel pour cette commande !", ephemeral: true})
-                return
-			}
+			try {
+				if(!interaction.guild){
+					await t.rollback();
+					console.log("Error wordle : interaction.guild is null")
+				}
 
-			let word = WORDS[Math.floor(Math.random() * 2315)] 
-			wordle_games[interaction.user.id] = {word:word, attemps:[]}
+				logs.debug(interaction.guild,interaction.user,"wordle",null)
 
-			const description = "**A** signifie qu'il y a un A à cette place.\n__A__ signifie qu'il y a un A à une autre place.\nA signifie qu'il n'y a pas de A dans le mot.\n\n\\_ \\_ \\_ \\_ \\_\n\\_ \\_ \\_ \\_ \\_\n\\_ \\_ \\_ \\_ \\_\n\\_ \\_ \\_ \\_ \\_\n\\_ \\_ \\_ \\_ \\_\n\\_ \\_ \\_ \\_ \\_\n"
-			const footer = "/wordle pour démarrer une autre partie"
+				if(interaction.channelId !== process.env.WORDLE_PLAY_CHANNEL_ID){
+					await t.rollback();
+					await interaction.reply({content: "Ce n'est pas le bon channel pour cette commande !", ephemeral: true})
+					return
+				}
 
-			let hexAccentColor = (await interaction.user.fetch(true)).hexAccentColor
-			if(!hexAccentColor){
-				hexAccentColor = process.env.EMBED_COLOR
-			}
+				let user_game_stats = await interaction.client.sequelize.models.discord_games.findOne({
+					where: {
+						discord_id: interaction.user.id
+					}}
+				);
+				let words_played
+				if(!user_game_stats){
+					await interaction.client.sequelize.models.discord_games.create({
+						discord_id: interaction.user.id,
+						wordle_wins: 0,
+						wordle_words_played: ""
+					}, { transaction: t })
+					words_played = ""
+				} else {
+					words_played = user_game_stats.wordle_words_played
+				}
 
-			const embed = new EmbedBuilder()
-                .setColor(hexAccentColor)
-				.setAuthor({ name: interaction.user.username, iconURL: interaction.user.displayAvatarURL()})
-                .setTitle("Wordle")
-                .setDescription(description)
-				.setFooter({ text: footer})
+				const word = await interaction.client.sequelize.models.singleton.findOne({
+					where: {
+						name: "WORDLE"
+					}}
+				)
+				if(!word || !word.value){
+					await t.rollback();
+					logs.warn(interaction.guild,interaction.user,"wordle","Impossible to access word")
+					await interaction.reply({content: "Une erreur s'est produite !", ephemeral: true})
+					return
+				}
 
-			const row = new ActionRowBuilder()
-                .addComponents(
-                    new ButtonBuilder()
-                        .setCustomId('wordle_choose_word?'+interaction.user.id)
-                        .setLabel('Proposer un mot')
-                        .setStyle(ButtonStyle.Primary),
-					new ButtonBuilder()
-                        .setCustomId('wordle_cancel?'+interaction.user.id)
-                        .setLabel('Abandonner')
-                        .setStyle(ButtonStyle.Danger),
-			);
+				const { displayWordle } = require("../../Interactables/Wordle/wordle_display")
+				const displayData = await displayWordle(interaction, word.value.toUpperCase(), words_played)
 
-            interaction.reply({embeds: [embed], components:[row]})
+				await t.commit();
+
+				if(displayData[2] || displayData[3]) {
+					await interaction.reply({embeds: [displayData[0]], ephemeral:true})
+				} else {
+					await interaction.reply({embeds: [displayData[0]], components:[displayData[1]], ephemeral:true})
+				}
+
+
+			} catch (error) {
+                await t.rollback();
+                if(interaction)
+                    logs.error(interaction.guild,interaction.user,"wordle",error)
+                else
+                    logs.error(null,null,"wordle",error)
+            }
 
 		}
 }

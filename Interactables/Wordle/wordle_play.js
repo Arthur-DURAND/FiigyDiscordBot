@@ -4,12 +4,17 @@ const logs = require('../../Utils/Logs.js');
 const RoleUtil = require('../../Utils/RoleUtil.js');
 const WinRoles = require('../GameUtils/WinRoles.js');
 const wordle_games = require('./temp_wordle.js')
-const WORDS = require("./words.js");
+const WORDS = require("./mots.js");
+const { Op, Transaction } = require('sequelize')
 
 
 module.exports = {
 	name: "wordle_play",
 	async execute(interaction) {
+
+        const t = await interaction.client.sequelize.transaction({
+            isolationLevel: Transaction.ISOLATION_LEVELS.REPEATABLE_READ
+        })
 
         try {
 
@@ -20,109 +25,77 @@ module.exports = {
                 user_word = interaction.fields.getTextInputValue('word').toUpperCase();
 
             if(user_word.length != 5){
+                await t.rollback();
                 await interaction.reply({content: "Le mot doit avoir 5 lettres !", ephemeral: true})
                 return
             }
 
             if(!WORDS.includes(user_word.toLowerCase())){
-                await interaction.reply({content: "Ce mot n'est pas dans le dictionnaire de wordle. Le mot à chercher est en anglais !", ephemeral: true})
+                await t.rollback();
+                await interaction.reply({content: "Ce mot n'est pas dans le dictionnaire de wordle. Le mot à chercher est en français !", ephemeral: true})
                 return
             }
 
-            if(!wordle_games[interaction.user.id]){
-                await interaction.reply({content: "Cette partie a déjà été terminée.", ephemeral: true})
-                return
-            }
-
-            const word = wordle_games[interaction.user.id]["word"].toUpperCase();
-            const attempts = wordle_games[interaction.user.id]["attemps"]
-            attempts.push(user_word)
-
-            let description = "**A** signifie qu'il y a un A à cette place.\n__A__ signifie qu'il y a un A à une autre place.\nA signifie qu'il n'y a pas de A dans le mot.\n\n"
-            for(let i=0 ; i< attempts.length ; i++){
-                let attempt = attempts[i];
-                let previous = 0
-                for (let j = 0; j < attempt.length; j++) {
-                    if(word.charAt(j) === attempt.charAt(j)){
-                        if(previous != 1) {
-                            if(previous == 2){
-                                description += "__"
-                            }
-                            description += "**"
-                            previous = 1;
-                        }
-                        description += attempt.charAt(j)
-                    } else if(word.includes(attempt.charAt(j))){
-                        if(previous != 2) {
-                            if(previous == 1){
-                                description += "**"
-                            }
-                            description += "__"
-                            previous = 2;
-                        }
-                        description += attempt.charAt(j)
-                    } else {
-                        if(previous == 1){
-                            description += "**"
-                        } else if(previous == 2){
-                            description += "__"
-                        }
-                        previous = 0;
-                        description += attempt.charAt(j)
-                    }
-                }
-                if(previous == 1){
-                    description += "**"
-                } else if(previous == 2){
-                    description += "__"
-                }
-                description += "\n";
-            }
-            for(let i=attempts.length ; i<6 ; i++){
-                description += "\\_ \\_ \\_ \\_ \\_\n";
-            }
-
-            let game_ended = false
-            if(word === attempts[attempts.length-1]){
-                description += "\nFélicitations !"
-                game_ended = true
-
-                // get data from channel
-                const channel = interaction.guild.channels.cache.get(process.env.WORDLE_DATA_CHANNEL_ID)
-                const first_place_role = await interaction.guild.roles.fetch(process.env.WORDLE_FIRST_PLACE_ROLE_ID)
-                const second_place_role = await interaction.guild.roles.fetch(process.env.WORDLE_SECOND_PLACE_ROLE_ID)
-                const third_place_role = await interaction.guild.roles.fetch(process.env.WORDLE_THIRD_PLACE_ROLE_ID)
-                let wordle_roles = [first_place_role,second_place_role,third_place_role]
-                WinRoles.updateRoles(interaction.guild, channel, interaction.user, wordle_roles, "Wordle")
-   
-            } else if(attempts.length == 6){
-                description += "\nPartie finie !\nLe mot était : "+word
-                game_ended = true
-            }
-
-			const footer = "/wordle pour démarrer une autre partie"
-
-			let hexAccentColor = (await interaction.user.fetch(true)).hexAccentColor
-			if(!hexAccentColor){
-				hexAccentColor = process.env.EMBED_COLOR
-			}
-
-			const embed = new EmbedBuilder()
-                .setColor(hexAccentColor)
-				.setAuthor({ name: interaction.user.username, iconURL: interaction.user.displayAvatarURL()})
-                .setTitle("Wordle")
-                .setDescription(description)
-				.setFooter({ text: footer})
-
-            if(game_ended) {
-                delete wordle_games[interaction.user.id]
-                await interaction.update({embeds: [embed], components: []})
+            let user_game_stats = await interaction.client.sequelize.models.discord_games.findOne({
+                where: {
+                    discord_id: interaction.user.id
+                }}
+            );
+            let words_played
+            let wins
+            if(!user_game_stats){
+                await interaction.client.sequelize.models.discord_games.create({
+                    discord_id: interaction.user.id,
+                    wordle_wins: 0,
+                    wordle_words_played: user_word
+                }, { transaction: t })
+                words_played = user_word
+                wins = 0
             } else {
-                await interaction.update({embeds: [embed]})
+                if(user_game_stats.wordle_words_played.length > 25){
+                    await t.rollback();
+                    await interaction.reply({content: "Tu as déjà fini ta partie !", ephemeral: true})
+                    return
+                }
+                words_played = user_game_stats.wordle_words_played + user_word
+                await interaction.client.sequelize.models.discord_games.update({
+                    wordle_words_played: words_played
+                }, {where: {discord_id: interaction.user.id}}, { transaction: t })
+                wins = user_game_stats.wordle_wins
+            }
+            
+
+            const word = await interaction.client.sequelize.models.singleton.findOne({
+                where: {
+                    name: "WORDLE"
+                }}
+            )
+            if(!word || !word.value){
+                await t.rollback();
+                logs.warn(interaction.guild,interaction.user,"wordle_play","Impossible to access word")
+                await interaction.reply({content: "Une erreur s'est produite !", ephemeral: true})
+                return
+            }
+
+            const { displayWordle } = require("../../Interactables/Wordle/wordle_display")
+            const displayData = await displayWordle(interaction, word.value.toUpperCase(), words_played)
+
+            await t.commit();
+            if(displayData[2]) {
+                interaction.channel.send(interaction.user.displayName+" a réussi le wordle du jour ! Il a désormais "+(wins+1)+" victoire(s) !")
+                await interaction.client.sequelize.models.discord_games.update({
+                    wordle_wins: wins+1
+                }, {where: {discord_id: interaction.user.id}}, { transaction: t })
+                await interaction.update({embeds: [displayData[0]], components:[], ephemeral:true})
+            } else if (displayData[3]){
+                await interaction.update({embeds: [displayData[0]], components:[], ephemeral:true})
+            } else {
+                await interaction.update({embeds: [displayData[0]], ephemeral:true})
             }
             
             
         } catch (error) {
+            await t.rollback();
 			if(interaction) {
 				logs.error(interaction.guild,interaction.user,"wordle_play",error)
                 await interaction.reply({content: "Une erreur s'est produite.", ephemeral: true})
