@@ -4,7 +4,7 @@ const logs = require('../../Utils/Logs.js');
 const RoleUtil = require('../../Utils/RoleUtil.js');
 const WinRoles = require('../GameUtils/WinRoles.js');
 const wordle_games = require('./temp_wordle.js')
-const WORDS = require("./mots.js");
+const WORDS = require("./mots_valides.js");
 const { Op, Transaction } = require('sequelize')
 
 

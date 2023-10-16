@@ -4,7 +4,7 @@ function startSchedules(client) {
 	const { Op, Transaction } = require('sequelize')
 	const RoleUtil = require('../Utils/RoleUtil.js');
 
-	schedule.scheduleJob('* * * * *', async () => {
+	schedule.scheduleJob('0 6 * * *', async () => {
 
 		const guild = client.guilds.cache.get(process.env.PRODUCTION_GUILD_ID)
 
