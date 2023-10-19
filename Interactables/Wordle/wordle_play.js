@@ -82,7 +82,7 @@ module.exports = {
 
             await t.commit();
             if(displayData[2]) {
-                interaction.channel.send(interaction.user.displayName+" a réussi le wordle du jour ! Il a désormais "+(wins+1)+" victoire(s) !")
+                interaction.channel.send("<@"+interaction.user.id+"> ("+interaction.user.displayName+") a réussi le wordle du jour :tada: C'est sa **"+(wins+1)+"e** victoire(s) !")
                 await interaction.client.sequelize.models.discord_games.update({
                     wordle_wins: wins+1
                 }, {where: {discord_id: interaction.user.id}}, { transaction: t })
