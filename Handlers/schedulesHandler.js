@@ -6,8 +6,11 @@ function startSchedules(client) {
 
 	let rule = new schedule.RecurrenceRule();
 	rule.tz = 'Europe/Paris';
+	rule.second = 0
+	rule.minute = 0
+	rule.hour = 6
 
-	schedule.scheduleJob('0 6 * * *', async () => {
+	schedule.scheduleJob(rule, async () => {
 
 		const guild = client.guilds.cache.get(process.env.PRODUCTION_GUILD_ID)
 
