@@ -106,7 +106,44 @@ class dbUtil {
             tableName: 'Team',
             timestamps: false
         });
+        //Tournois
+        sequelize.define('tournament_list', {
+            id: {
+                type: Sequelize.INTEGER,
+                autoIncrement: true,
+                unique: true,
+                primaryKey: true,
+                allowNull: false
+            },
+            tournament_name: {
+                type: Sequelize.STRING,
+                unique: true,
+                allowNull: false
+            },
+            team_size: {
+                type: Sequelize.INTEGER,
+                allownull:false,
+            },
+            min_player: {
+                type: Sequelize.SMALLINT,
+                allownull:false
+            },
 
+            format_poules: {
+                type: Sequelize.INTEGER,
+                defaultValue: null,
+                allowNull: false
+            },
+            role_id_to_give: {
+                type: Sequelize.STRING,
+                allownull:false
+            },
+            status :{
+                type: Sequelize.ENUM,
+                defaultValue:null
+            }
+
+}); 
         let team_member = sequelize.define('team_member', {
             id: {
                 type: Sequelize.INTEGER,
