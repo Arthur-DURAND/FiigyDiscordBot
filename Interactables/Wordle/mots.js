@@ -294,7 +294,6 @@ module.exports = [
     'nuage',
     'nulle',
     'nuque',
-    'nègre',
     'néant',
     'nôtre',
     'objet',
