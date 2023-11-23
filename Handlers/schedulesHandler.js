@@ -1,8 +1,11 @@
+'use strict'
+
 function startSchedules(client) {
 	const schedule = require("node-schedule")
 	const WORDS = require("../Interactables/Wordle/mots.js")
 	const { Op, Transaction } = require('sequelize')
 	const RoleUtil = require('../Utils/RoleUtil.js');
+	const Sudoku = require('../Games/sudoku.js')
 
 	let rule = new schedule.RecurrenceRule();
 	rule.tz = 'Europe/Paris';
@@ -75,6 +78,41 @@ function startSchedules(client) {
 		const channel = client.channels.cache.get(process.env.WORDLE_PLAY_CHANNEL_ID);
 		channel.send("### :arrow_forward:   Le mot du jour à été généré !")
 	})
+
+	// SUDOKU
+
+	schedule.scheduleJob('* * * * *', async () => {
+
+		let easySudoku = new Sudoku()
+		easySudoku.fillValues()
+		easySudoku.removeKDigits(35,9,1)
+
+		let mediumSudoku = new Sudoku()
+		mediumSudoku.fillValues()
+		mediumSudoku.removeKDigits(50,5,2)
+
+		let hardSudoku = new Sudoku()
+		hardSudoku.fillValues()
+		hardSudoku.removeKDigits(50,5,3)
+
+		const channel = client.channels.cache.get(process.env.SUDOKU_PLAY_CHANNEL_ID);
+		channel.send("## :arrow_forward:   Les sudoku du jour ont été générés !")
+		channel.send("### Sudoku facile")
+		channel.send("```" + easySudoku.toString() + "```")
+		channel.send("https://arthur-durand.github.io/sudoku?grid="+easySudoku.toArgs())
+		channel.send("### Sudoku moyen")
+		channel.send("```" + mediumSudoku.toString() + "```")
+		channel.send("https://arthur-durand.github.io/sudoku?grid="+mediumSudoku.toArgs())
+		/* channel.send("### Sudoku difficile")
+		channel.send("```" + hardSudoku.toString() + "```")
+		channel.send("https://arthur-durand.github.io/sudoku?grid="+hardSudoku.toArgs())*/
+	})
+
+	let hardSudoku = new Sudoku()
+	hardSudoku.fillValues()
+	hardSudoku.removeKDigits(50,5,3)
+	console.log(hardSudoku.toString())
+	
 
 	return console.log("Schedules started.")
 }
