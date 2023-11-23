@@ -29,6 +29,7 @@ class Logs {
                     .setColor("#ff9500")
                     .setTitle("WARN")
                     .setDescription(str)
+                    .setTimestamp()
                 warnChannel.send({content: "<@&"+process.env.LOGS_WARN_ROLE_ID+">", embeds: [embed]})
             } else {
                 console.log("Cannot get warnChannel: ")
@@ -62,6 +63,7 @@ class Logs {
                     .setColor("#c2000a")
                     .setTitle("ERROR")
                     .setDescription(str)
+                    .setTimestamp()
                 errorChannel.send({content: "<@&"+process.env.LOGS_ERROR_ROLE_ID+">", embeds: [embed]})
             } else {
                 console.log("Cannot get errorChannel: ")
@@ -96,6 +98,7 @@ class Logs {
                     .setColor("#f0f3ff")
                     .setTitle("INFO")
                     .setDescription(str)
+                    .setTimestamp()
                     infoChannel.send({content: "<@&"+process.env.LOGS_INFO_ROLE_ID+">", embeds: [embed]})
             } else {
                 console.log("Cannot get infoChannel: ")
@@ -129,6 +132,7 @@ class Logs {
                     .setColor("#7ccf69")
                     .setTitle("DEBUG")
                     .setDescription(str)
+                    .setTimestamp()
                 debugChannel.send({content: "<@&"+process.env.LOGS_DEBUG_ROLE_ID+">", embeds: [embed]})
             } else {
                 console.log("Cannot get debugChannel: ")
@@ -137,6 +141,33 @@ class Logs {
         }
     }
 
+    static todo(guild, message) {
+        if(process.env.LOG_LEVEL >= 4) {
+            
+            if(guild === null){
+                console.log("TODO : guild is null : "+message)
+                return
+            }
+
+            let todoChannelID = process.env.IS_DEV == "true" ? process.env.DEV_LOG_TODO_CHANNEL : process.env.LOG_TODO_CHANNEL
+            let str = new Date().toISOString()
+            if(message != null){
+                str += "\n    "+message
+            }
+            let todoChannel = guild.channels.cache.get(todoChannelID)
+            if(todoChannel != null) {
+                const embed = new EmbedBuilder()
+                    .setColor("#7ccf69")
+                    .setTitle("TODO")
+                    .setDescription(str)
+                    .setTimestamp()
+                    todoChannel.send({content: "<@&"+process.env.LOGS_TODO_ROLE_ID+">", embeds: [embed]})
+            } else {
+                console.log("Cannot get todoChannel: ")
+                console.log(str)
+            }
+        }
+    }
 }
 
 module.exports = Logs;

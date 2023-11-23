@@ -43,6 +43,8 @@ module.exports = {
             );
             let words_played
             let wins
+            let tries
+            let globalWins
             if(!user_game_stats){
                 await interaction.client.sequelize.models.discord_games.create({
                     discord_id: interaction.user.id,
@@ -51,6 +53,8 @@ module.exports = {
                 }, { transaction: t })
                 words_played = user_word
                 wins = 0
+                tries = 0
+                globalWins = 0
             } else {
                 if(user_game_stats.wordle_words_played.length > 25){
                     await t.rollback();
@@ -62,6 +66,8 @@ module.exports = {
                     wordle_words_played: words_played
                 }, {where: {discord_id: interaction.user.id}}, { transaction: t })
                 wins = user_game_stats.wordle_wins
+                tries = user_game_stats.wordle_tries
+                globalWins = user_game_stats.wordle_global_wins
             }
             
 
@@ -80,11 +86,13 @@ module.exports = {
             const { displayWordle } = require("../../Interactables/Wordle/wordle_display")
             const displayData = await displayWordle(interaction, word.value.toUpperCase(), words_played)
 
-            await t.commit();
+            
             if(displayData[2]) {
-                interaction.channel.send("<@"+interaction.user.id+"> ("+interaction.user.displayName+") a réussi le wordle du jour :tada: C'est sa **"+(wins+1)+"e** victoire(s) !")
+                interaction.channel.send("<@"+interaction.user.id+"> ("+interaction.user.displayName+") a réussi le wordle du jour :tada: C'est sa **"+(wins+1)+"e** victoire(s) cette saison !")
                 await interaction.client.sequelize.models.discord_games.update({
-                    wordle_wins: wins+1
+                    wordle_wins: wins+1,
+                    wordle_tries: tries + words_played.length/5,
+                    wordle_global_wins: globalWins+1
                 }, {where: {discord_id: interaction.user.id}}, { transaction: t })
                 await interaction.update({embeds: [displayData[0]], components:[], ephemeral:true})
             } else if (displayData[3]){
@@ -92,7 +100,7 @@ module.exports = {
             } else {
                 await interaction.update({embeds: [displayData[0]], ephemeral:true})
             }
-            
+            await t.commit();
             
         } catch (error) {
             await t.rollback();

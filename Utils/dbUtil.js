@@ -166,6 +166,16 @@ class dbUtil {
             wordle_words_played: {
                 type: Sequelize.STRING,
                 allowNull: false
+            },
+            wordle_tries: {
+                type: Sequelize.INTEGER,
+                defaultValue: 0,
+                allowNull: false
+            },
+            wordle_global_wins: {
+                type: Sequelize.INTEGER,
+                defaultValue: 0,
+                allowNull: false
             }
         }, {
             tableName: 'DiscordGames',
