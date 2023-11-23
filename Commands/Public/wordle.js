@@ -23,7 +23,6 @@ module.exports = {
 			logs.debug(interaction.guild,interaction.user,"wordle",null)
 
 			if(interaction.channelId !== process.env.WORDLE_PLAY_CHANNEL_ID){
-				await t.rollback();
 				await interaction.reply({content: "Ce n'est pas le bon channel pour cette commande !", ephemeral: true})
 				return
 			}
@@ -102,7 +101,7 @@ module.exports = {
 
 					logs.debug(interaction.guild,interaction.user,"résultats",null)
 
-					
+
 					const author = await interaction.guild.members.fetch(interaction.user)
 					let userFound = false
 					const usersStatsSeason = await interaction.client.sequelize.models.discord_games.findAll({
