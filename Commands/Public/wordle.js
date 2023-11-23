@@ -20,6 +20,15 @@ module.exports = {
 		 */
 		async execute(interaction) {
 
+			logs.debug(interaction.guild,interaction.user,"wordle",null)
+
+			if(interaction.channelId !== process.env.WORDLE_PLAY_CHANNEL_ID){
+				await t.rollback();
+				await interaction.reply({content: "Ce n'est pas le bon channel pour cette commande !", ephemeral: true})
+				return
+			}
+
+
 			if (interaction.options.getSubcommand() === "jouer") {
 
 				const t = await interaction.client.sequelize.transaction({
@@ -32,7 +41,7 @@ module.exports = {
 						console.log("Error wordle : interaction.guild is null")
 					}
 
-					logs.debug(interaction.guild,interaction.user,"wordle",null)
+					logs.debug(interaction.guild,interaction.user,"wordle jouer",null)
 
 					if(interaction.channelId !== process.env.WORDLE_PLAY_CHANNEL_ID){
 						await t.rollback();
@@ -88,7 +97,12 @@ module.exports = {
 						logs.error(null,null,"wordle",error)
 				}
 			} else if(interaction.options.getSubcommand() == "résultats"){
+
 				try {
+
+					logs.debug(interaction.guild,interaction.user,"résultats",null)
+
+					
 					const author = await interaction.guild.members.fetch(interaction.user)
 					let userFound = false
 					const usersStatsSeason = await interaction.client.sequelize.models.discord_games.findAll({
