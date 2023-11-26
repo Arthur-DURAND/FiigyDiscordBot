@@ -107,7 +107,7 @@ class dbUtil {
             timestamps: false
         });
         //Tournois
-        sequelize.define('tournament_list', {
+        sequelize.define('tournaments', {
             id: {
                 type: Sequelize.INTEGER,
                 autoIncrement: true,
@@ -128,6 +128,11 @@ class dbUtil {
                 type: Sequelize.SMALLINT,
                 allownull:false
             },
+            format_principal: {
+                type: Sequelize.INTEGER,
+                defaultValue: null,
+                allowNull: false
+            },
 
             format_poules: {
                 type: Sequelize.INTEGER,
@@ -142,8 +147,29 @@ class dbUtil {
                 type: Sequelize.ENUM,
                 defaultValue:null
             }
+        }); 
+        sequelize.define('rounds', {
+            id: {
+                type: Sequelize.INTEGER,
+                autoIncrement: true,
+                unique: true,
+                primaryKey: true,
+                allowNull: false
+            },
+            team_1: {
+                type: Sequelize.STRING,
+                allownull:false,
+            },
+            team_2: {
+                type: Sequelize.STRING,
+                allownull:false
+            },
+            status :{
+                type: Sequelize.ENUM,
+                defaultValue:null
+            }
+        }); 
 
-}); 
         let team_member = sequelize.define('team_member', {
             id: {
                 type: Sequelize.INTEGER,
@@ -161,13 +187,18 @@ class dbUtil {
                 unique: true,
                 allowNull: false,
             },
-            ready: {
+            ready: { //J'aime bien ce nom pour dire que que la personne accepte de(est prete à) rejoindre la team
                 type: Sequelize.BOOLEAN,
                 allowNull: false
             },
             ig_name: {
                 type: Sequelize.STRING
+            },
+            tournament_id: { //unofficial foreign key
+                type: Sequelize.INTEGER, 
+                allowNull : false
             }
+            
         }, {
             tableName: 'TeamMember',
             timestamps: false
