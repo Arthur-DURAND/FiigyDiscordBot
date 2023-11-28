@@ -1,4 +1,5 @@
 const logs = require('./Logs.js');
+const { Op, Transaction } = require('sequelize')
 
 class RoleUtil {
 
@@ -142,6 +143,36 @@ class RoleUtil {
             }
         })
     }
+
+    static async isUserIdVerified(sequelize, userId){
+        let user = await sequelize.models.user.findOne({ where: { discord_id: userId} })
+        if(user && user.email && user.email != ""){
+            return true
+        }
+        return false
+    }
+
+    static async isUserIdAlumni(sequelize, userId){
+        let user = await sequelize.models.user.findOne({ where: { discord_id: userId} })
+        if(user && user.alumni){
+            return true
+        }
+        return false
+    }
+
+    static async userIdBecomesAlumni(sequelize, userId) {
+        sequelize.models.user.update({alumni: true}, { where: { discord_id: userId} })
+    }
+
+    static async isUserIdContestant(sequelize, userId, tournamentId){
+        let user = await sequelize.models.team_member.findOne({ where: { [Op.and]: {discord_id: userId, ready: true}} })
+        if(user && user.alumni){
+            return true
+        }
+        return false
+    }
+
+    
 
 }
 

@@ -65,7 +65,7 @@ module.exports = {
 			username = Math.abs(hashCode(username) % Math.pow(2, 31) - 1);
 
 			if(username == null){
-				await interaction.reply({content: "Impossible de trouver ton pseudo Minecraft. Malheureusement, ette fonctionnalité n'est pas disponible pour les comptes whitelisted en +1.", ephemeral: true})
+				await interaction.reply({content: "Impossible de trouver ton pseudo Minecraft. Malheureusement, cette fonctionnalité n'est pas disponible pour les comptes whitelisted en +1.", ephemeral: true})
 				return
 			}
 

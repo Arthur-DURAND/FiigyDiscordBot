@@ -12,15 +12,12 @@ module.exports = {
 
             logs.debug(interaction.guild,interaction.user,"lien_confirm",null)
 
-            const member = await interaction.guild.members.fetch(interaction.user)
-
             const [_, student, lien_verifie, lien_alumni] = interaction.customId.split("?")
 
             if(student == "true"){
                 await interaction.update({ content: lien_verifie, components: [], ephemeral: true })
             } else {
-                const role = interaction.guild.roles.cache.find(role => role.id === process.env.ALUMNI_ROLE_ID)
-                RoleUtil.giveRoleKnowingRole(interaction.guild, member, role)
+                RoleUtil.userIdBecomesAlumni(interaction.client.sequelize, interaction.user.id)
                 await interaction.update({ content: lien_alumni, components: [], ephemeral: true })
             }
 

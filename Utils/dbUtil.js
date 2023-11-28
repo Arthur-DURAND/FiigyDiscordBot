@@ -38,6 +38,11 @@ class dbUtil {
             email_perso: {
                 type: Sequelize.STRING,
                 defaultValue: null
+            },
+            alumni: {
+                type: Sequelize.BOOLEAN,
+                allowNull: false,
+                defaultValue: false
             }
         }, {
             tableName: 'User',

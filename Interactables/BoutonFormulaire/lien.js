@@ -1,5 +1,5 @@
 
-const { ActionRowBuilder, ModalBuilder, TextInputStyle, TextInputBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const { ActionRowBuilder, ModalBuilder, TextInputStyle, TextInputBuilder, ButtonBuilder, ButtonStyle, Role } = require('discord.js');
 const logs = require('../../Utils/Logs.js');
 const RoleUtil = require('../../Utils/RoleUtil.js');
 
@@ -12,18 +12,8 @@ module.exports = {
 
             logs.debug(interaction.guild,interaction.user,"lien",null)
 
-            const member = await interaction.guild.members.fetch(interaction.user)
-
-            const roles = member.roles.cache
-            let has_email = false
-            let has_alumni = false
-            for(let role of roles){
-                if(role[0] == process.env.VERIFIED_EMAIL_ROLE_ID){
-                    has_email = true
-                } else if(role[0] == process.env.ALUMNI_ROLE_ID){
-                    has_alumni = true
-                }
-            }
+            let has_email = await RoleUtil.isUserIdVerified(interaction.client.sequelize, interaction.user.id)
+            let has_alumni = await RoleUtil.isUserIdAlumni(interaction.client.sequelize, interaction.user.id)
 
             const [_, lien_verifie, lien_alumni, lien_others] = interaction.customId.split("?")
 
