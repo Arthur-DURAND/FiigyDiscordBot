@@ -52,7 +52,7 @@ module.exports = {
             } else {
                 if(process.env.TOURNAMENT_MIN_VERIFIED_MEMBERS < process.env.TOURNAMENT_TEAM_SIZE){
                     modal.setCustomId('modal_joueur_sans_equipe?other?reply')
-                    modal.setTitle('Inscription équipe incomplète - EXTERIEUR INSA')
+                    modal.setTitle('Inscription équipe incomplète - HORS INSA')
                     await interaction.showModal(modal);
                 } else {
                     await interaction.reply({ content: "Malheureusement ce tournoi est réservé aux insa*iens. Si tu es à l'INSA, n'oublie pas de vérifier ton email. Si tu es alumni, envoie un ancien certificat de scolarité à un admin.", ephemeral: true })
@@ -61,9 +61,9 @@ module.exports = {
 
         } catch (error) {
 			if(interaction)
-				logs.error(interaction.guild,interaction.user,"lien_formulaire",error)
+				logs.error(interaction.guild,interaction.user,"joueur_sans_equipe",error)
 			else
-				logs.error(null,null,"lien_formulaire",error)
+				logs.error(null,null,"joueur_sans_equipe",error)
 		}
     
     }
