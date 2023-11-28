@@ -5,12 +5,12 @@ const RoleUtil = require('../../Utils/RoleUtil.js');
 
 
 module.exports = {
-	name: "lien_formulaire",
+	name: "lien",
 	async execute(interaction) {
 
         try {
 
-            logs.debug(interaction.guild,interaction.user,"lien_formulaire",null)
+            logs.debug(interaction.guild,interaction.user,"lien",null)
 
             const member = await interaction.guild.members.fetch(interaction.user)
 
@@ -35,13 +35,13 @@ module.exports = {
                 const row = new ActionRowBuilder()
                     .addComponents(
                         new ButtonBuilder()
-                            .setCustomId('lien_formulaire_confirm?true?'+lien_verifie+"?"+lien_alumni)
+                            .setCustomId('lien_confirm?true?'+lien_verifie+"?"+lien_alumni)
                             .setLabel('Je suis étudiant')
                             .setStyle(ButtonStyle.Primary)
                     )
                     .addComponents(
                         new ButtonBuilder()
-                            .setCustomId('lien_formulaire_confirm?false?'+lien_verifie+"?"+lien_alumni)
+                            .setCustomId('lien_confirm?false?'+lien_verifie+"?"+lien_alumni)
                             .setLabel('Je suis alumni')
                             .setStyle(ButtonStyle.Primary)
                     )
@@ -49,15 +49,19 @@ module.exports = {
                     await interaction.reply({ content: text, components: [row], ephemeral: true })
                 }
             } else {
-                await interaction.reply({ content: "Le lien suivant est pour les personnes extérieures à l'INSA. Si tu es étudiant INSA, vérifie ton email. Si tu es alumni, envoie un vieux certificat de scolarité à un admin.\n"+lien_others, ephemeral: true })
+                if(lien_others == "" || lien_others=="null"){
+                    await interaction.reply({ content: "Ce lien est réservé aux insa*iens et alumnis ! Si tu es étudiant INSA, vérifie ton email. Si tu es alumni, envoie un vieux certificat de scolarité à un admin.", ephemeral: true })
+                } else {
+                    await interaction.reply({ content: "Le lien suivant est pour les personnes extérieures à l'INSA. Si tu es étudiant INSA, vérifie ton email. Si tu es alumni, envoie un vieux certificat de scolarité à un admin.\n"+lien_others, ephemeral: true })
+                }
             }
 
 
         } catch (error) {
 			if(interaction)
-				logs.error(interaction.guild,interaction.user,"lien_formulaire",error)
+				logs.error(interaction.guild,interaction.user,"lien",error)
 			else
-				logs.error(null,null,"lien_formulaire",error)
+				logs.error(null,null,"lien",error)
 		}
     
     }

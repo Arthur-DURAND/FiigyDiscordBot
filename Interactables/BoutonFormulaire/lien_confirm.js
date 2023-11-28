@@ -5,12 +5,12 @@ const RoleUtil = require('../../Utils/RoleUtil.js');
 
 
 module.exports = {
-	name: "lien_formulaire_confirm",
+	name: "lien_confirm",
 	async execute(interaction) {
 
         try {
 
-            logs.debug(interaction.guild,interaction.user,"lien_formulaire_confirm",null)
+            logs.debug(interaction.guild,interaction.user,"lien_confirm",null)
 
             const member = await interaction.guild.members.fetch(interaction.user)
 
@@ -26,9 +26,9 @@ module.exports = {
 
         } catch (error) {
 			if(interaction)
-				logs.error(interaction.guild,interaction.user,"lien_formulaire_confirm",error)
+				logs.error(interaction.guild,interaction.user,"lien_confirm",error)
 			else
-				logs.error(null,null,"lien_formulaire_confirm",error)
+				logs.error(null,null,"lien_confirm",error)
 		}
     
     }
