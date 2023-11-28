@@ -14,7 +14,7 @@ module.exports = {
         } else if (interaction.isButton()) {
             const [name, ...params] = interaction.customId.split("?");
 	        command = client.interacts.get(name);
-        } else if (interaction.isSelectMenu()) {
+        } else if (interaction.isStringSelectMenu()) {
 			let name = ""
 			let params = []
 			interaction.values.forEach(value => {
