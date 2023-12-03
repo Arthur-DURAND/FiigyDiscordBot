@@ -29,8 +29,8 @@ client
 		loadEvents(client)
 		loadCommands(client)
 		loadInteracts(client)
-		startSchedules(client)
 		dbUtil.testConnection(client.sequelize)
 		dbUtil.syncTables(client.sequelize)
+		startSchedules(client) // has to be done after db related stuff
 	})
 	.catch((err) => console.log(err))

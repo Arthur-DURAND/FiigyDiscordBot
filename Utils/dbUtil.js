@@ -186,6 +186,56 @@ class dbUtil {
             tableName: 'DiscordGames',
             timestamps: false
         });
+
+        sequelize.define('team_chess_members', {
+            discord_id: {
+                type: Sequelize.STRING,
+                unique: true,
+                primaryKey: true,
+                allowNull: false
+            },
+            team: {
+                type: Sequelize.BOOLEAN,
+                allowNull: false
+            },
+            vote: {
+                type: Sequelize.STRING,
+                allowNull: true
+            }
+        }, {
+            tableName: 'TeamChessMembers',
+            timestamps: false
+        });
+
+        sequelize.define('team_chess_board', {
+            id: {
+                type: Sequelize.INTEGER,
+                autoIncrement: true,
+                unique: true,
+                primaryKey: true,
+                allowNull: false
+            },
+            piece_type: {
+                type: Sequelize.STRING,
+                unique: true,
+                allowNull: false
+            },
+            colour: {
+                type: Sequelize.BOOLEAN,
+                allowNull: false
+            },
+            col: {
+                type: Sequelize.TINYINT,
+                allowNull: true
+            },
+            row: {
+                type: Sequelize.TINYINT,
+                allowNull: true
+            }
+        }, {
+            tableName: 'TeamChessBoard',
+            timestamps: false
+        });
         
         sequelize.sync()
 

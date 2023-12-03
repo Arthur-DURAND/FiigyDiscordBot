@@ -2,9 +2,10 @@
 function startSchedules(client) {
 	const schedule = require("node-schedule")
 	const WORDS = require("../Interactables/Wordle/mots.js")
-	const { Op, Transaction } = require('sequelize')
+	const { Op, Transaction, Sequelize } = require('sequelize')
 	const RoleUtil = require('../Utils/RoleUtil.js');
 	const logs = require('../Utils/Logs.js');
+	const Chess = require('../Games/chess.js');
 	const { EmbedBuilder } = require("discord.js")
 
 
@@ -13,6 +14,8 @@ function startSchedules(client) {
 	rule.second = 0
 	rule.minute = 0
 	rule.hour = 6
+
+	// WORDLE
 
 	schedule.scheduleJob(rule, async () => {
 
@@ -100,6 +103,11 @@ function startSchedules(client) {
 
 		channel.send("### :arrow_forward:   Le mot du jour à été généré !")
 	})
+
+
+	// TEAM CHESS
+	Chess.startSetTimout(client)
+	Chess.generateBoardImage(client)
 
 	return console.log("Schedules started.")
 }
