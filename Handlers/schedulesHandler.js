@@ -57,14 +57,14 @@ function startSchedules(client) {
 				// Log TODO
 				let message = "Créer puis ajouter le rôle aux gagnants de la saison de wordle :"
 				for(const userStats of winnersUserStats){
-					message += "\n <"+userStats.discord_id+"> "+userStats.discord_id
+					message += "\n <@"+userStats.discord_id+"> "+userStats.discord_id
 				}
 				logs.todo(guild, message)
 	
 				// Announcement
 				message = "### La saison de wordle vient de finir ! Félicitations au(x) gagnant(s) qui ont totalisés " + mostWins + " victoires !"
 				for(const userStats of winnersUserStats){
-					message += "\n- <"+userStats.discord_id+"> :tada:"
+					message += "\n- <@"+userStats.discord_id+"> :tada:"
 				}
 				message += "\n### Les victoires ont été réinitialisées, une nouvelle saison commence !"
 				const embed = new EmbedBuilder()
